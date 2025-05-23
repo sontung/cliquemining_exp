@@ -23,8 +23,8 @@ BASE_PATH = "/work/qvpr/data/raw/Mapillary_Street_Level_Sequences/train_val/"
 def load_city_df(base_path):
     # Load cities
     city_df = {}
-    # for city in (Path(base_path)).iterdir():
-    for city in [Path(base_path)/"amman"]:
+    for city in (Path(base_path)).iterdir():
+    # for city in [Path(base_path)/"amman"]:
 
         # Database
         db = pd.read_csv(city / 'database' / 'postprocessed.csv')
