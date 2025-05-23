@@ -1,6 +1,3 @@
-import argparse
-from pathlib import Path
-
 import faiss
 import numpy as np
 import scipy
@@ -8,12 +5,8 @@ import torch
 from PIL import Image
 from pytorch_metric_learning.distances import DotProductSimilarity
 from pytorch_metric_learning.utils import loss_and_miner_utils as lmu
-from torch import optim
-from torch.optim import lr_scheduler
 from torchvision import transforms
-from tqdm import tqdm, trange
-
-from ace_util import set_seed, whitenapply, pcawhitenlearn
+from tqdm import trange
 
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 
