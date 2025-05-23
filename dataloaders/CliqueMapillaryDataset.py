@@ -17,18 +17,14 @@ default_transform = T.Compose([
     T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
-# NOTE: Hard coded path to dataset folder 
-BASE_PATH = '../data/msls/train_val/'
-
-if not Path(BASE_PATH).exists():
-    raise FileNotFoundError(
-        'BASE_PATH is hardcoded, please adjust to point to gsv_cities')
+BASE_PATH = "/work/qvpr/data/raw/Mapillary_Street_Level_Sequences/train_val/"
 
 def load_city_df(base_path):
     # Load cities
     city_df = {}
-    for city in (Path(base_path)).iterdir():
-        
+    # for city in (Path(base_path)).iterdir():
+    for city in [Path(base_path)/"amman"]:
+
         # Database
         db = pd.read_csv(city / 'database' / 'postprocessed.csv')
         db = db.join(

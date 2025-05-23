@@ -9,11 +9,11 @@ import torch.utils.data as data
 from PIL import Image, UnidentifiedImageError
 from sklearn.neighbors import NearestNeighbors
 
-root_dir = '../data/Pittsburgh/'
+root_dir = '/work/qvpr/data/raw/Pittsburgh250k/'
 
-if not exists(root_dir):
-    raise FileNotFoundError(
-        'root_dir is hardcoded, please adjust to point to Pittsburgh dataset')
+# if not exists(root_dir):
+#     raise FileNotFoundError(
+#         'root_dir is hardcoded, please adjust to point to Pittsburgh dataset')
 
 struct_dir = join(root_dir, 'datasets/')
 queries_dir = join(root_dir, 'queries_real')

@@ -1,5 +1,10 @@
+from pathlib import Path
+
+import faiss
+import numpy as np
 import pytorch_lightning as pl
 
+from aachen import SampleDataset, test
 from vpr_model import VPRModel
 from dataloaders.GSVCitiesDataloader import GSVCitiesDataModule
 
@@ -13,7 +18,7 @@ if __name__ == '__main__':
         image_size=(224, 224),
         num_workers=10,
         show_data_stats=True,
-        val_set_names=['pitts30k_val', 'pitts30k_test', 'msls_val'], # pitts30k_val, pitts30k_test, msls_val
+        val_set_names=[], # pitts30k_val, pitts30k_test, msls_val
         clique_mapillary_args={
             'same_place_threshold': 25.0,
             # We create more batches than required so
@@ -88,3 +93,43 @@ if __name__ == '__main__':
 
     # we call the trainer, we give it the model and the datamodule
     trainer.fit(model=model, datamodule=datamodule)
+
+    ds_path = Path("../glace_experiment/datasets/aachen")
+    train_data = SampleDataset(
+        ds_path / "train", "../covis_graph/checkpoints/pose_overlap.npz", batch_size=32, nb_iterations=10
+    )
+    mat1 = test(train_data, model, 8448)
+
+    train_data = SampleDataset(
+        ds_path / "test", "../covis_graph/checkpoints/pose_overlap.npz", batch_size=32, nb_iterations=10
+    )
+    mat2 = test(train_data, model, 8448)
+    whiten = True
+    if whiten:
+        from cuml import PCA
+
+        pca_torch = PCA(n_components=256, copy=False)
+        pca_torch.fit(mat1)
+        print(f"Explained variance: {pca_torch.explained_variance_ratio_.sum()}")
+        mat1 = pca_torch.transform(mat1)
+        mat2 = pca_torch.transform(mat2)
+
+    db_desc0 = np.load("../covis_graph/checkpoints/desc_salad_db_cl.npy")
+    test_desc0 = np.load("../covis_graph/checkpoints/desc_salad_test_cl.npy")
+    db_desc0 = np.ascontiguousarray(db_desc0)
+    test_desc0 = np.ascontiguousarray(test_desc0)
+    index = faiss.IndexFlatL2(db_desc0.shape[1])
+    index.add(db_desc0.astype(np.float32))
+    _, indices = index.search(test_desc0.astype(np.float32), 1)
+    indices0 = indices.flatten()
+
+    mat1 = np.ascontiguousarray(mat1)
+    mat2 = np.ascontiguousarray(mat2)
+    index = faiss.IndexFlatL2(mat1.shape[1])
+    index.add(mat1.astype(np.float32))
+    _, indices = index.search(mat2.astype(np.float32), 1)
+    indices = indices.flatten()
+
+    acc = np.sum(indices == indices0) / len(indices)
+    print(f"Accuracy when compared to salad: {acc:.3f}")
+

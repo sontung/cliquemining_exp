@@ -109,7 +109,6 @@ class VPRModel(pl.LightningModule):
             )
         else:
             raise ValueError(f'Optimizer {self.optimizer} has not been added to "configure_optimizers()"')
-        
 
         if self.lr_sched.lower() == 'multistep':
             scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=self.lr_sched_args['milestones'], gamma=self.lr_sched_args['gamma'])
@@ -125,7 +124,7 @@ class VPRModel(pl.LightningModule):
 
         return [optimizer], [scheduler]
     
-    # configure the optizer step, takes into account the warmup stage
+    # configure the optimizer step, takes into account the warmup stage
     def optimizer_step(self,  epoch, batch_idx, optimizer, optimizer_closure):
         # warm up lr
         optimizer.step(closure=optimizer_closure)
@@ -198,7 +197,7 @@ class VPRModel(pl.LightningModule):
         self.batch_acc = []
 
     # For validation, we will also iterate step by step over the validation set
-    # this is the way Pytorch Lghtning is made. All about modularity, folks.
+    # this is the way Pytorch Lightning is made. All about modularity, folks.
     def validation_step(self, batch, batch_idx, dataloader_idx=None):
         places, _ = batch
         descriptors = self(places)
