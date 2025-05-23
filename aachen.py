@@ -294,4 +294,3 @@ def test(train_data, model, dim):
             emb = model.forward(image)
             mat[idx] = emb.cpu().numpy()
     return mat
-
