@@ -94,6 +94,8 @@ if __name__ == '__main__':
     # we call the trainer, we give it the model and the datamodule
     trainer.fit(model=model, datamodule=datamodule)
 
+    model.eval()
+    model.cuda()
     ds_path = Path("../glace_experiment/datasets/aachen")
     train_data = SampleDataset(
         ds_path / "train", "../covis_graph/checkpoints/pose_overlap.npz", batch_size=32, nb_iterations=10
