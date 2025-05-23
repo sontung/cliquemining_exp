@@ -24,6 +24,7 @@ if __name__ == '__main__':
             # We create more batches than required so
             # that we can shuffle the dataset after each epoch
             'num_batches': 4000,
+            # 'num_batches': 20,
             'num_processes': 10,
         }
     )
@@ -106,7 +107,7 @@ if __name__ == '__main__':
         ds_path / "test", "../covis_graph/checkpoints/pose_overlap.npz", batch_size=32, nb_iterations=10
     )
     mat2 = test(train_data, model, 8448)
-    whiten = False
+    whiten = True
     if whiten:
         from cuml import PCA
 
@@ -134,4 +135,8 @@ if __name__ == '__main__':
 
     acc = np.sum(indices == indices0) / len(indices)
     print(f"Accuracy when compared to salad: {acc:.3f}")
+    model_name = "desc_dino_dual"
+    np.save(f"../glace_experiment/checkpoints/{model_name}.npy", mat1)
+    np.save(f"../glace_experiment/checkpoints/{model_name}_test.npy", mat2)
+
 

@@ -1,7 +1,10 @@
+from pathlib import Path
+
 import pytorch_lightning as pl
 from torch.utils.data.dataloader import DataLoader
 from torchvision import transforms as T
 
+from dataloaders.AachenDataset import SampleDataset
 from dataloaders.GSVCitiesDataset import GSVCitiesDataset
 from dataloaders.CliqueMapillaryDataset import CliqueMapillaryDataset
 from . import PittsburgDataset
@@ -144,12 +147,22 @@ class GSVCitiesDataModule(pl.LightningDataModule):
             transform=self.train_transform)
         
         self.train_dataset_1 = self.train_dataset
+        self.train_dataset_3 = SampleDataset(
+            Path("../glace_experiment/datasets/aachen") / "train",
+            # Path("../glace/datasets/aachen") / "train",
+            "../covis_graph/checkpoints/pose_overlap.npz",
+            batch_size=32,
+            nb_iterations=10000,
+            hard_mining=True,
+            train=True,
+        )
 
     def train_dataloader(self):
         self.reload()
         return {
             "GSVCities": DataLoader(dataset=self.train_dataset_1, **self.train_loader_config), 
-            "MSLS": DataLoader(dataset=self.train_dataset_2, **self.train_loader_config_2)
+            "MSLS": DataLoader(dataset=self.train_dataset_2, **self.train_loader_config_2),
+            "aachen": DataLoader(self.train_dataset_3, batch_size=1, shuffle=False, num_workers=4)
         }
 
     def val_dataloader(self):

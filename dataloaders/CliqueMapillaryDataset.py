@@ -18,6 +18,7 @@ default_transform = T.Compose([
 ])
 
 BASE_PATH = "/work/qvpr/data/raw/Mapillary_Street_Level_Sequences/train_val/"
+# BASE_PATH = "/home/n11373598/hpc-home/work/vpr_datasets/msls_trainval/"
 
 def load_city_df(base_path):
     # Load cities

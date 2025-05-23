@@ -6,6 +6,30 @@ import utils
 from models import helper
 
 
+class ContrastiveLoss(torch.nn.Module):
+
+    def __init__(self, margin=0.5, binary=False, cosine=False):
+        print("Using Contrastive Loss")
+        super(ContrastiveLoss, self).__init__()
+        self.margin = margin
+        self.binary = binary
+        self.cosine = cosine
+        self.distance = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
+
+    def forward(self, out0, out1, label):
+        if self.binary:
+            label[label > 0] = 1
+        gt = label.float()
+        if self.cosine:
+            dist = 1 - self.distance(out0, out1).float().squeeze()
+        else:
+            dist = -torch.sum(out0 * out1, dim=1)
+        loss = gt * 0.5 * torch.pow(dist, 2) + (1 - gt) * 0.5 * torch.pow(
+            torch.clamp(self.margin - dist, min=0.0), 2
+        )
+        return loss.sum()
+
+
 class VPRModel(pl.LightningModule):
     """This is the main model for Visual Place Recognition
     we use Pytorch Lightning for modularity purposes.
@@ -15,16 +39,13 @@ class VPRModel(pl.LightningModule):
     """
 
     def __init__(self,
-        #---- Backbone
         backbone_arch='resnet50',
         backbone_config={},
         
-        #---- Aggregator
         agg_arch='ConvAP',
         agg_config={},
         
-        #---- Train hyperparameters
-        lr=0.03, 
+        lr=0.03,
         optimizer='sgd',
         weight_decay=1e-3,
         momentum=0.9,
@@ -35,8 +56,7 @@ class VPRModel(pl.LightningModule):
             'total_iters': 4000,
         },
         
-        #----- Loss
-        loss_name='MultiSimilarityLoss', 
+        loss_name='MultiSimilarityLoss',
         miner_name='MultiSimilarityMiner', 
         miner_margin=0.1,
         faiss_gpu=False
@@ -76,6 +96,7 @@ class VPRModel(pl.LightningModule):
         # get the backbone and the aggregator
         self.backbone = helper.get_backbone(backbone_arch, backbone_config)
         self.aggregator = helper.get_aggregator(agg_arch, agg_config)
+        self.gcl_loss = ContrastiveLoss(0.5, binary=False, cosine=True).cuda()
 
         # For validation in Lightning v2.0.0
         self.val_outputs = []
@@ -163,10 +184,10 @@ class VPRModel(pl.LightningModule):
     
     # This is the training step that's executed at each iteration
     def training_step(self, batch, batch_idx):
-        # places, labels, types = batch
 
         places_1, labels_1 = batch['GSVCities']
         places_2, labels_2 = batch['MSLS']
+        pairs_3, scores_3, images_3, _ = batch['aachen']
 
         BS, N, ch, h, w = places_1.shape
 
@@ -177,17 +198,23 @@ class VPRModel(pl.LightningModule):
         # which means the dataloader will return a batch containing BS places
         images = torch.concat([places_1, places_2], dim=0).view((places_1.size(0) + places_2.size(0))*N, ch, h, w)
         labels = torch.concat([labels_1, labels_2], dim=0).view(-1)
+        pairs_3 += images.size(0)
 
         # Feed forward the batch to the model
-        descriptors = self(images) # Here we are calling the method forward that we defined above
+        all_images = torch.vstack([images, images_3.squeeze()])
+        descriptors = self(all_images)
 
         if torch.isnan(descriptors).any():
             raise ValueError('NaNs in descriptors')
 
         # Split loss
         loss_1 = self.loss_function(descriptors[:places_1.size(0)*N], labels[:places_1.size(0)*N])
-        loss_2 = self.loss_function(descriptors[places_2.size(0)*N:], labels[places_2.size(0)*N:])
-        loss = loss_1 + loss_2
+        loss_2 = self.loss_function(descriptors[places_2.size(0)*N:images.size(0)], labels[places_2.size(0)*N:])
+
+        embs_paired = descriptors[pairs_3.squeeze(0)]
+        loss_3 = self.gcl_loss(embs_paired[:, 0], embs_paired[:, 1], scores_3.squeeze(0))
+
+        loss = loss_1 + loss_2 + loss_3
         
         self.log('loss', loss.item(), logger=True, prog_bar=True)
         return {'loss': loss}
@@ -196,8 +223,6 @@ class VPRModel(pl.LightningModule):
         # we empty the batch_acc list for next epoch
         self.batch_acc = []
 
-    # For validation, we will also iterate step by step over the validation set
-    # this is the way Pytorch Lightning is made. All about modularity, folks.
     def validation_step(self, batch, batch_idx, dataloader_idx=None):
         places, _ = batch
         descriptors = self(places)

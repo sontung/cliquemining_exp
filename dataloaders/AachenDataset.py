@@ -8,6 +8,7 @@ from pytorch_metric_learning.utils import loss_and_miner_utils as lmu
 from torchvision import transforms
 from tqdm import trange
 
+
 IMAGENET_MEAN_STD = {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}
 
 
@@ -109,7 +110,7 @@ class SampleDataset(torch.utils.data.Dataset):
 
         self.rgb_files = sorted(rgb_dir.iterdir())
 
-        self.salad_db_desc = np.load("checkpoints/desc_salad_db.npy")
+        self.salad_db_desc = np.load("../covis_graph/checkpoints/desc_salad_db.npy")
 
         self.image_transform = transforms.Compose(
             [
@@ -269,29 +270,3 @@ class SampleDataset(torch.utils.data.Dataset):
         remapped_pairs = mapping[batch]
         images = self.read_image(img_indices)
         return remapped_pairs, all_scores, images, img_indices
-
-
-def test(train_data, model, dim):
-    mat = np.zeros((len(train_data.rgb_files), dim))
-    with torch.no_grad():
-        for idx in trange(len(train_data.rgb_files)):
-            frame_path = str(train_data.rgb_files[idx])
-
-            if "test" in train_data.root_dir:
-                parts = frame_path.split("/")[-1].split("_")
-                part0 = "/".join(parts[:3])
-                part1 = "_".join(parts[3:])
-
-                frame_path1 = f"{train_data.ori_ds_dir}/{part0}/{part1}"
-                image_ori = Image.open(frame_path1)
-            else:
-                base_key = "/".join(
-                    frame_path.split("/")[-1].split(".png")[0].split("_")
-                )
-                image_ori = Image.open(f"{train_data.ori_ds_dir}/{base_key}")
-            image = train_data.image_transform(image_ori)
-            image = image.unsqueeze(0).cuda()
-            emb = model.forward(image)
-            mat[idx] = emb.cpu().numpy()
-    return mat
-
