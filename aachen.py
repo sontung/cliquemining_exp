@@ -109,8 +109,6 @@ class SampleDataset(torch.utils.data.Dataset):
 
         self.rgb_files = sorted(rgb_dir.iterdir())
 
-        self.salad_db_desc = np.load("checkpoints/desc_salad_db.npy")
-
         self.image_transform = transforms.Compose(
             [
                 transforms.Resize(
@@ -123,22 +121,6 @@ class SampleDataset(torch.utils.data.Dataset):
                 ),
             ]
         )
-        if train:
-            index = faiss.IndexFlatL2(self.salad_db_desc.shape[1])  # build the index
-            index.add(self.salad_db_desc.astype(np.float32))  # add vectors to the index
-            distances, indices = index.search(self.salad_db_desc.astype(np.float32), 10)
-            self.thresh_neg = np.max(distances)
-
-            self.salad_db_desc = torch.tensor(self.salad_db_desc)
-            dist_mat = self.compute_dist_matrix()
-            dist_mat = normalize(dist_mat)
-            sim_score = normalize(self.data)
-
-            prob = torch.tensor(sim_score) * dist_mat
-            self.prob = prob / prob.sum()
-
-            self.num_pairs = len(self.all_indices) * len(self.all_indices)
-            self.all_images = self.read_all_images()
 
     def compute_dist_matrix(self):
         results = []
