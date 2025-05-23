@@ -106,7 +106,7 @@ if __name__ == '__main__':
         ds_path / "test", "../covis_graph/checkpoints/pose_overlap.npz", batch_size=32, nb_iterations=10
     )
     mat2 = test(train_data, model, 8448)
-    whiten = True
+    whiten = False
     if whiten:
         from cuml import PCA
 
