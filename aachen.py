@@ -109,7 +109,7 @@ class SampleDataset(torch.utils.data.Dataset):
 
         self.rgb_files = sorted(rgb_dir.iterdir())
 
-        self.salad_db_desc = np.load("checkpoints/desc_salad_db.npy")
+        self.salad_db_desc = np.load("../covis_graph/checkpoints/desc_salad_db.npy")
 
         self.image_transform = transforms.Compose(
             [

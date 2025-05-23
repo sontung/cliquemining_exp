@@ -29,7 +29,7 @@ def load_city_df(base_path):
     city_df = {}
     for city in (Path(base_path)).iterdir():
         # for city in [Path(base_path)/"amman"]:
-        
+
         if not city.is_dir():
             continue
 
